@@ -1,0 +1,416 @@
+```html
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow — мої завдання</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+}
+
+header {
+  padding: 20px 8%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #30363d;
+}
+
+.logo {
+  font-size: 25px;
+  font-weight: bold;
+  color: #58a6ff;
+}
+
+header a {
+  color: #c9d1d9;
+  text-decoration: none;
+}
+
+main {
+  max-width: 800px;
+  margin: 65px auto;
+  padding: 20px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+h1 {
+  font-size: 44px;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  color: #8b949e;
+  font-size: 17px;
+}
+
+.panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 25px;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  gap: 10px;
+}
+
+input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 13px;
+  background: #0d1117;
+  color: white;
+  border: 1px solid #30363d;
+  border-radius: 7px;
+  font-size: 15px;
+}
+
+button {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 7px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add {
+  background: #238636;
+}
+
+.add:hover {
+  background: #2ea043;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.filter {
+  background: #21262d;
+  border: 1px solid #30363d;
+}
+
+.filter.active {
+  color: #58a6ff;
+  border-color: #58a6ff;
+}
+
+#stats {
+  color: #8b949e;
+  font-size: 14px;
+  margin: 15px 0;
+}
+
+.progress-bg {
+  height: 6px;
+  background: #30363d;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#progress {
+  height: 100%;
+  width: 0%;
+  background: #2ea043;
+  transition: width 0.3s;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-top: 1px solid #30363d;
+}
+
+li span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+li.done span {
+  text-decoration: line-through;
+  color: #8b949e;
+}
+
+.delete {
+  background: #da3633;
+}
+
+.delete:hover {
+  background: #f85149;
+}
+
+#empty {
+  text-align: center;
+  padding: 25px 5px;
+  color: #8b949e;
+}
+
+footer {
+  text-align: center;
+  padding: 25px;
+  color: #8b949e;
+}
+
+@media (max-width: 520px) {
+  h1 {
+    font-size: 34px;
+  }
+
+  form {
+    flex-direction: column;
+  }
+
+  .add {
+    width: 100%;
+  }
+
+  header {
+    padding: 18px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">✦ TaskFlow</div>
+  <a href="https://github.com/" target="_blank">
+    GitHub ↗
+  </a>
+</header>
+
+<main>
+  <section class="hero">
+    <h1>Твої цілі.<br>
+      <span style="color:#58a6ff">Твій прогрес.</span>
+    </h1>
+    <p>Організуй свій день і досягай більшого!</p>
+  </section>
+
+  <section class="panel">
+    <h2>Мої завдання</h2>
+
+    <form id="taskForm">
+      <input
+        type="text"
+        id="taskInput"
+        placeholder="Що потрібно зробити?"
+        maxlength="180"
+        required
+      >
+      <button class="add" type="submit">
+        + Додати
+      </button>
+    </form>
+
+    <div class="filters">
+      <button class="filter active" data-filter="all">
+        Усі
+      </button>
+      <button class="filter" data-filter="active">
+        Активні
+      </button>
+      <button class="filter" data-filter="done">
+        Виконані
+      </button>
+    </div>
+
+    <div class="progress-bg">
+      <div id="progress"></div>
+    </div>
+
+    <p id="stats">Почни з першого завдання!</p>
+
+    <ul id="taskList"></ul>
+
+    <div id="empty">
+      ✦<br>
+      Тут поки порожньо.<br>
+      Додай перше завдання!
+    </div>
+  </section>
+</main>
+
+<footer>
+  Створено з ❤️ · TaskFlow
+</footer>
+
+<script>
+const form = document.getElementById("taskForm");
+const input = document.getElementById("taskInput");
+const list = document.getElementById("taskList");
+const stats = document.getElementById("stats");
+const progress = document.getElementById("progress");
+const empty = document.getElementById("empty");
+const filters = document.querySelectorAll(".filter");
+
+let tasks = [];
+let currentFilter = "all";
+
+try {
+  tasks = JSON.parse(
+    localStorage.getItem("taskflow-tasks") || "[]"
+  );
+
+  if (!Array.isArray(tasks)) tasks = [];
+} catch {
+  tasks = [];
+}
+
+function saveTasks() {
+  localStorage.setItem(
+    "taskflow-tasks",
+    JSON.stringify(tasks)
+  );
+  renderTasks();
+}
+
+function renderTasks() {
+  list.innerHTML = "";
+
+  const visibleTasks = tasks.filter(task => {
+    if (currentFilter === "active") return !task.done;
+    if (currentFilter === "done") return task.done;
+    return true;
+  });
+
+  visibleTasks.forEach(task => {
+    const li = document.createElement("li");
+
+    if (task.done) li.classList.add("done");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.done;
+    checkbox.setAttribute(
+      "aria-label",
+      "Позначити завдання виконаним"
+    );
+
+    checkbox.addEventListener("change", () => {
+      task.done = checkbox.checked;
+      saveTasks();
+    });
+
+    const text = document.createElement("span");
+    text.textContent = task.text;
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Видалити";
+    deleteButton.className = "delete";
+
+    deleteButton.addEventListener("click", () => {
+      tasks = tasks.filter(item => item.id !== task.id);
+      saveTasks();
+    });
+
+    li.append(checkbox, text, deleteButton);
+    list.appendChild(li);
+  });
+
+  const completed = tasks.filter(task => task.done).length;
+  const remaining = tasks.length - completed;
+
+  stats.textContent =
+    `Усього: ${tasks.length} | ` +
+    `Виконано: ${completed} | ` +
+    `Залишилось: ${remaining}`;
+
+  progress.style.width = tasks.length
+    ? `${completed / tasks.length * 100}%`
+    : "0%";
+
+  empty.style.display =
+    visibleTasks.length === 0 ? "block" : "none";
+
+  if (visibleTasks.length === 0) {
+    empty.textContent =
+      currentFilter === "done"
+        ? "Виконаних завдань поки немає."
+        : currentFilter === "active" && tasks.length > 0
+          ? "Усі завдання виконані! 🎉"
+          : "✦ Тут поки порожньо. Додай перше завдання!";
+  }
+}
+
+form.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  tasks.unshift({
+    id: Date.now().toString() +
+        Math.random().toString(16).slice(2),
+    text: text,
+    done: false
+  });
+
+  input.value = "";
+  currentFilter = "all";
+
+  filters.forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.filter === "all"
+    );
+  });
+
+  saveTasks();
+  input.focus();
+});
+
+filters.forEach(button => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
+
+    filters.forEach(item => {
+      item.classList.toggle(
+        "active",
+        item === button
+      );
+    });
+
+    renderTasks();
+  });
+});
+
+renderTasks();
+</script>
+
+</body>
+</html>
+```
